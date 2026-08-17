@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BOQ Corrector</title>
+    <style>
+        body { font-family: sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px; }
+        input[type="file"] { margin-bottom: 15px; }
+        button { padding: 10px 20px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #output { margin-top: 20px; border: 1px solid #eee; padding: 10px; min-height: 50px; background-color: #f9f9f9; }
+        .hidden { display: none; }
+    </style>
+    <!-- IMPORTANT: This includes the SheetJS library for Excel parsing. It's loaded from a CDN. -->
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+    <div class="container">
+        <h1>BOQ Corrector</h1>
+        <p>Upload your BOQ (Bill of Quantities) file and the README file. The actual correction logic needs to be implemented in JavaScript based on your specific rules.</p>
+
+        <div>
+            <label for="boqFile">Upload BOQ Excel File (.xlsx):</label><br>
+            <input type="file" id="boqFile" accept=".xlsx" /><br>
+        </div>
+
+        <div>
+            <label for="readmeFile">Upload README File (Excel .xlsx or Text .txt):</label><br>
+            <input type="file" id="readmeFile" accept=".xlsx, .txt" /><br>
+        </div>
+
+        <button id="correctButton">Correct BOQ</button>
+
+        <div id="output" class="hidden">
+            <h3>Correction Status:</h3>
+            <pre id="statusMessage"></pre>
+            <button id="downloadButton" class="hidden">Download Corrected BOQ</button>
+        </div>
+    </div>
+
+    <script>
+        const boqFileInput = document.getElementById('boqFile');
+        const readmeFileInput = document.getElementById('readmeFile');
+        const correctButton = document.getElementById('correctButton');
+        const outputDiv = document.getElementById('output');
+        const statusMessage = document.getElementById('statusMessage');
+        const downloadButton = document.getElementById('downloadButton');
+
+        let boqData = null; // To store parsed BOQ data (workbook object)
+        let readmeData = null; // To store parsed README data (workbook object or text string)
+        let correctedBoq = null; // To store the corrected BOQ workbook
+
+        // Function to read an Excel file and return a workbook object
+        function readExcelFile(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                callback(workbook);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // Function to read a text file and return its content as a string
+        function readTextFile(file, callback) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                callback(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        // Event listener for the Correct Button click
+        correctButton.addEventListener('click', () => {
+            const boqFile = boqFileInput.files[0];
+            const readmeFile = readmeFileInput.files[0];
+
+            if (!boqFile || !readmeFile) {
+                statusMessage.textContent = 'Please upload both BOQ and README files.';
+                outputDiv.classList.remove('hidden');
+                return;
+            }
+
+            statusMessage.textContent = 'Processing files...';
+            outputDiv.classList.remove('hidden');
+            downloadButton.classList.add('hidden'); // Hide download button until processing is done
+
+            // --- Step 1: Read BOQ File ---
+            readExcelFile(boqFile, (boqWorkbook) => {
+                boqData = boqWorkbook;
+                statusMessage.textContent += '\nBOQ file loaded.';
+
+                // --- Step 2: Read README File (
